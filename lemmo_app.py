@@ -7,7 +7,7 @@ def lemmo_app():
     st.title("LemoGPT")
 
     # Add a sidebar for model selection
-    model = st.sidebar.radio("Wähle ein Modell:", ("gpt-4o-mini", "gpt-4o"))
+    model = st.sidebar.radio("Wähle ein Modell:", ("o4-mini"))
 
     col1_1, col1_2 = st.columns(2)
     start_year = col1_1.number_input(
