@@ -1,8 +1,10 @@
+import os
 from datetime import datetime
 
 import streamlit as st
 from dotenv import load_dotenv
-from openai import OpenAI
+from google import genai
+from google.genai import types
 
 from prompts import *
 
@@ -12,7 +14,6 @@ load_dotenv()
 
 class LemoAgent:
     def __init__(self, model, start_year, end_year, verbose=False):
-        self.client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
         self.verbose = verbose
         self.model = model
         self.start_year = start_year
@@ -37,14 +38,16 @@ class LemoAgent:
 
     def set_prices(self):
         # set prices
-        if self.model == "gpt-4o-mini":
-            self.in_price = 0.15  # per 1M tokens
-            self.out_price = 0.6  # per 1M tokens
-        elif self.model == "gpt-4o":
-            self.in_price = 5  # per 1M tokens
-            self.out_price = 15  # per 1M tokens
-        else:
-            raise ValueError(f"Model '{self.model}' not supported")
+        self.in_price = 1
+        self.out_price = 1
+        # if self.model == "gpt-4o-mini":
+        #     self.in_price = 0.15  # per 1M tokens
+        #     self.out_price = 0.6  # per 1M tokens
+        # elif self.model == "gpt-4o":
+        #     self.in_price = 5  # per 1M tokens
+        #     self.out_price = 15  # per 1M tokens
+        # else:
+        #     raise ValueError(f"Model '{self.model}' not supported")
 
     def get_context(self, question):
         for year in range(self.start_year, self.end_year + 1):
@@ -55,18 +58,12 @@ class LemoAgent:
                 year=year, context=context, question=question
             )
 
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {"role": "system", "content": summary_system_prompt},
-                    {"role": "user", "content": prompt},
-                ],
-            )
-            # completion_tokens, prompt_tokens
-            self.total_tokens_in += response.usage.prompt_tokens
-            self.total_tokens_out += response.usage.completion_tokens
+            content = generate(input_text=prompt, system_prompt=summary_system_prompt)
 
-            content = response.choices[0].message.content
+            # completion_tokens, prompt_tokens
+            self.total_tokens_in += 0
+            self.total_tokens_out += 0
+
             self.year_summaries[str(year)] = content
 
             if self.verbose:
@@ -108,21 +105,39 @@ class LemoAgent:
             context=self.relevant_context, question=question
         )
 
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages=[
-                {"role": "system", "content": final_system_prompt},
-                {"role": "user", "content": final_prompt},
-            ],
-        )
+        content = generate(input_text=final_prompt, system_prompt=final_system_prompt)
 
-        self.total_tokens_in += response.usage.prompt_tokens
-        self.total_tokens_out += response.usage.completion_tokens
+        self.total_tokens_in += 0
+        self.total_tokens_out += 0
 
         price_final = (self.total_tokens_in / 1e6 * self.in_price) + (
             self.total_tokens_out / 1e6 * self.out_price
         ) * 100  # in cent
 
-        content = response.choices[0].message.content
-
         return content, price_final
+
+
+def generate(input_text, system_prompt):
+    load_dotenv()
+    client = genai.Client(
+        api_key=os.environ.get("GEMINI_API_KEY"),
+    )
+
+    model = "gemini-2.5-flash"
+    contents = [
+        types.Content(
+            role="user",
+            parts=[
+                types.Part.from_text(text=input_text),
+            ],
+        ),
+    ]
+
+    answer = client.models.generate_content(
+        model=model,
+        contents=contents,
+        config={
+            "system_instruction": system_prompt,
+        },
+    )
+    return answer.parts[0].text

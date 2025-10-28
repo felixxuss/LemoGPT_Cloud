@@ -6,9 +6,6 @@ from agent import LemoAgent
 def lemmo_app():
     st.title("LemoGPT")
 
-    # Add a sidebar for model selection
-    model = st.sidebar.radio("Wähle ein Modell:", ("o4-mini"))
-
     col1_1, col1_2 = st.columns(2)
     start_year = col1_1.number_input(
         "Start Jahr", min_value=1900, max_value=2017, value=2000
@@ -24,7 +21,7 @@ def lemmo_app():
     col2_1, inter, col2_2 = st.columns((3, 8, 4))
     if col2_1.button("Los geht's!"):
         # get the agent with selected model
-        agent = LemoAgent(model, start_year, end_year)
+        agent = LemoAgent(model="NONE", start_year=start_year, end_year=end_year)
 
         progress_text = st.empty()
         progress_bar = st.progress(0)
