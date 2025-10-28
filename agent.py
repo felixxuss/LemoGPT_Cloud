@@ -44,7 +44,7 @@ class LemoAgent:
             self.in_price = 5  # per 1M tokens
             self.out_price = 15  # per 1M tokens
         else:
-            raise ValueError("Model not supported")
+            raise ValueError(f"Model '{self.model}' not supported")
 
     def get_context(self, question):
         for year in range(self.start_year, self.end_year + 1):
